@@ -14,7 +14,26 @@ const auth = new google.auth.GoogleAuth({
 });
 const sheets = google.sheets({ version: "v4", auth });
 
-const CATEGORIAS = ["mercado", "restaurante", "farmácia", "transporte", "conta", "lazer", "delivery", "academia", "outro"];
+const CATEGORIAS = [
+  "Aluguel+Condomínio+IPTU+Seguro",
+  "Diarista",
+  "Internet",
+  "Streaming",
+  "Supercoffee",
+  "TotalPass",
+  "Zeca",
+  "Energia",
+  "Gás",
+  "Supermercado",
+  "Farmácia",
+  "Viagens",
+  "Presentes",
+  "Restaurantes/Padaria",
+  "Marmitas/LivUp",
+  "Ifood",
+  "Uber",
+  "Outros"
+];
 
 async function salvarGasto(data, quem, valor, categoria, descricao) {
   await sheets.spreadsheets.values.append({
@@ -47,7 +66,26 @@ async function montarResumo() {
     categorias[categoria] = (categorias[categoria] || 0) + v;
   }
   const total = Object.values(totais).reduce((a, b) => a + b, 0);
-  const emojiCat = { mercado: "🛒", restaurante: "🍽️", farmácia: "💊", transporte: "🚗", conta: "💡", lazer: "🎉", delivery: "🛵", academia: "🏋️", outro: "📦" };
+  const emojiCat = {
+    "Aluguel+Condomínio+IPTU+Seguro": "🏠",
+    "Diarista": "🧹",
+    "Internet": "📡",
+    "Streaming": "📺",
+    "Supercoffee": "☕",
+    "TotalPass": "🏋️",
+    "Zeca": "🐶",
+    "Energia": "⚡",
+    "Gás": "🔥",
+    "Supermercado": "🛒",
+    "Farmácia": "💊",
+    "Viagens": "✈️",
+    "Presentes": "🎁",
+    "Restaurantes/Padaria": "🍽️",
+    "Marmitas/LivUp": "🥗",
+    "Ifood": "🛵",
+    "Uber": "🚗",
+    "Outros": "📦"
+  };
 
   let msg = `📊 *Resumo do mês:*\n`;
   for (const [quem, val] of Object.entries(totais)) msg += `${quem}: R$ ${val.toFixed(2)}\n`;
@@ -64,7 +102,7 @@ async function enviarMensagem(groupId, texto) {
 }
 
 async function extrairGasto(mensagem, imagemBase64 = null) {
-  const prompt = `Você é um assistente que extrai informações de gastos. Categorias possíveis: ${CATEGORIAS.join(", ")}. Responda APENAS com JSON no formato: {"valor": 0.00, "categoria": "...", "descricao": "..."}. Se não conseguir identificar um gasto, responda: {"erro": "não identificado"}`;
+  const prompt = `Você é um assistente que extrai informações de gastos domésticos de um casal. Categorias possíveis: ${CATEGORIAS.join(", ")}. Responda APENAS com JSON no formato: {"valor": 0.00, "categoria": "...", "descricao": "..."}. Use exatamente o nome da categoria como listado. Se não conseguir identificar um gasto, responda: {"erro": "não identificado"}`;
   const content = [];
   if (imagemBase64) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: imagemBase64 } });
   content.push({ type: "text", text: mensagem || "Extraia o gasto desta imagem." });
@@ -88,10 +126,8 @@ app.post("/webhook", async (req, res) => {
 
     const msg = evento.data?.message;
     const groupId = evento.data?.key?.remoteJid;
-    const fromMe = evento.data?.key?.fromMe;
     const pushName = evento.data?.pushName || "Alguém";
 
-    if (fromMe) return;
     if (!groupId?.endsWith("@g.us")) return;
     if (groupId !== process.env.GROUP_ID) {
       console.log("Grupo ignorado:", groupId, "esperado:", process.env.GROUP_ID);
