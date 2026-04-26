@@ -14,14 +14,17 @@ const auth = new google.auth.GoogleAuth({
 });
 const sheets = google.sheets({ version: "v4", auth });
 
-const CATEGORIAS = [
+const CATEGORIAS_FIXAS = [
   "Aluguel+Condomínio+IPTU+Seguro",
   "Diarista",
   "Internet",
   "Streaming",
   "Supercoffee",
   "TotalPass",
-  "Zeca",
+  "Zeca"
+];
+
+const CATEGORIAS_VARIAVEIS = [
   "Energia",
   "Gás",
   "Supermercado",
@@ -35,7 +38,30 @@ const CATEGORIAS = [
   "Outros"
 ];
 
+const CATEGORIAS = [...CATEGORIAS_FIXAS, ...CATEGORIAS_VARIAVEIS];
+
 const SHEET = process.env.SHEET_NAME || "Página1";
+
+const emojiCat = {
+  "Aluguel+Condomínio+IPTU+Seguro": "🏠",
+  "Diarista": "🧹",
+  "Internet": "📡",
+  "Streaming": "📺",
+  "Supercoffee": "☕",
+  "TotalPass": "🏋️",
+  "Zeca": "🐶",
+  "Energia": "⚡",
+  "Gás": "🔥",
+  "Supermercado": "🛒",
+  "Farmácia": "💊",
+  "Viagens": "✈️",
+  "Presentes": "🎁",
+  "Restaurantes/Padaria": "🍽️",
+  "Marmitas/LivUp": "🥗",
+  "Ifood": "🛵",
+  "Uber": "🚗",
+  "Outros": "📦"
+};
 
 async function salvarGasto(data, quem, valor, categoria, descricao) {
   await sheets.spreadsheets.values.append({
@@ -60,39 +86,40 @@ async function montarResumo() {
   const gastos = await buscarGastosMes();
   if (gastos.length === 0) return "Nenhum gasto registrado este mês ainda.";
 
-  const totais = {};
-  const categorias = {};
+  const totaisPessoa = {};
+  const fixas = {};
+  const variaveis = {};
+
   for (const [, quem, valor, categoria] of gastos) {
     const v = parseFloat(valor);
-    totais[quem] = (totais[quem] || 0) + v;
-    categorias[categoria] = (categorias[categoria] || 0) + v;
+    totaisPessoa[quem] = (totaisPessoa[quem] || 0) + v;
+    if (CATEGORIAS_FIXAS.includes(categoria)) {
+      fixas[categoria] = (fixas[categoria] || 0) + v;
+    } else {
+      variaveis[categoria] = (variaveis[categoria] || 0) + v;
+    }
   }
-  const total = Object.values(totais).reduce((a, b) => a + b, 0);
-  const emojiCat = {
-    "Aluguel+Condomínio+IPTU+Seguro": "🏠",
-    "Diarista": "🧹",
-    "Internet": "📡",
-    "Streaming": "📺",
-    "Supercoffee": "☕",
-    "TotalPass": "🏋️",
-    "Zeca": "🐶",
-    "Energia": "⚡",
-    "Gás": "🔥",
-    "Supermercado": "🛒",
-    "Farmácia": "💊",
-    "Viagens": "✈️",
-    "Presentes": "🎁",
-    "Restaurantes/Padaria": "🍽️",
-    "Marmitas/LivUp": "🥗",
-    "Ifood": "🛵",
-    "Uber": "🚗",
-    "Outros": "📦"
-  };
+
+  const totalFixas = Object.values(fixas).reduce((a, b) => a + b, 0);
+  const totalVariaveis = Object.values(variaveis).reduce((a, b) => a + b, 0);
+  const total = totalFixas + totalVariaveis;
 
   let msg = `📊 *Resumo do mês:*\n`;
-  for (const [quem, val] of Object.entries(totais)) msg += `${quem}: R$ ${val.toFixed(2)}\n`;
-  msg += `─────────────────\n*Total: R$ ${total.toFixed(2)}*\n\n🏷️ *Por categoria:*\n`;
-  for (const [cat, val] of Object.entries(categorias)) msg += `${emojiCat[cat] || "📦"} ${cat}: R$ ${val.toFixed(2)}\n`;
+  for (const [quem, val] of Object.entries(totaisPessoa)) {
+    msg += `${quem}: R$ ${val.toFixed(2)}\n`;
+  }
+  msg += `─────────────────\n*Total: R$ ${total.toFixed(2)}*\n\n`;
+
+  msg += `📌 *Fixas: R$ ${totalFixas.toFixed(2)}*\n`;
+  for (const [cat, val] of Object.entries(fixas)) {
+    msg += `${emojiCat[cat] || "📦"} ${cat}: R$ ${val.toFixed(2)}\n`;
+  }
+
+  msg += `\n📊 *Variáveis: R$ ${totalVariaveis.toFixed(2)}*\n`;
+  for (const [cat, val] of Object.entries(variaveis)) {
+    msg += `${emojiCat[cat] || "📦"} ${cat}: R$ ${val.toFixed(2)}\n`;
+  }
+
   return msg;
 }
 
