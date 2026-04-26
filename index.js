@@ -35,10 +35,12 @@ const CATEGORIAS = [
   "Outros"
 ];
 
+const SHEET = process.env.SHEET_NAME || "Página1";
+
 async function salvarGasto(data, quem, valor, categoria, descricao) {
   await sheets.spreadsheets.values.append({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: "Gastos!A:E",
+    range: `${SHEET}!A:E`,
     valueInputOption: "USER_ENTERED",
     resource: { values: [[data, quem, valor, categoria, descricao]] },
   });
@@ -47,7 +49,7 @@ async function salvarGasto(data, quem, valor, categoria, descricao) {
 async function buscarGastosMes() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: "Gastos!A:E",
+    range: `${SHEET}!A:E`,
   });
   const rows = res.data.values || [];
   const mesAtual = new Date().toISOString().slice(0, 7);
