@@ -113,7 +113,17 @@ async function extrairGasto(mensagem, imagemBase64 = null) {
     system: prompt,
     messages: [{ role: "user", content }],
   });
-  try { return JSON.parse(res.content[0].text); } catch { return { erro: "não identificado" }; }
+
+  const rawText = res.content[0].text;
+  console.log("Resposta Claude raw:", rawText);
+
+  try {
+    const clean = rawText.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  } catch {
+    console.log("Erro ao parsear JSON:", rawText);
+    return { erro: "não identificado" };
+  }
 }
 
 app.post("/webhook", async (req, res) => {
